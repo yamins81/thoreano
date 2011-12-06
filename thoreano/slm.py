@@ -9,6 +9,26 @@ from pythor3.model.slm.plugins.passthrough.passthrough import (
 from pythor3.operation import fbcorr_
 from pythor3.operation import lnorm_
 
+
+def get_into_shape(x):
+    if hasattr(x,'__iter__'):
+        x = np.array(x)
+        assert x.ndim == 1
+        x = x[np.newaxis, :, np.newaxis, np.newaxis]
+        x = x.astype(np.float32)
+    return x
+
+
+def dict_add(a, b):
+    rval = dict(a)
+    rval.update(b)
+    return rval
+
+
+class InvalidDescription(Exception):
+    """Model description was invalid"""
+
+
 class TheanoSLM(object):
     """
     SequentialLayeredModel clone implemented with Theano
