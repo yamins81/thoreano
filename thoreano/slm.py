@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import theano
 import theano.tensor as tensor
@@ -23,6 +25,16 @@ def dict_add(a, b):
     rval = dict(a)
     rval.update(b)
     return rval
+
+
+def get_pythor_safe_description(description):
+    description = copy.deepcopy(description)
+    for layer_idx, layer_desc in enumerate(description):
+        for (op_idx,(op_name, op_params)) in enumerate(layer_desc):
+            if op_name.endswith('_h'):
+                newname = op_name[:-2]
+                layer_desc[op_idx] = (newname,op_params)
+    return description
 
 
 class InvalidDescription(Exception):
@@ -222,7 +234,7 @@ class TheanoSLM(object):
                 raise NotImplementedError('div_method', div_method)
         else:
             raise NotImplementedError('outker_shape != inker_shape',outker_shape, inker_shape)
-        if (hasattr(stetch, '__iter__') and (stretch != 1).any()) or stretch != 1:
+        if (hasattr(stretch, '__iter__') and (stretch != 1).any()) or stretch != 1:
             arr_num = arr_num * stretch
             arr_div = arr_div * stretch
         arr_div = tensor.switch(arr_div < (threshold + EPSILON), 1.0, arr_div)
