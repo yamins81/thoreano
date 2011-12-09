@@ -34,6 +34,17 @@ def get_pythor_safe_description(description):
             if op_name.endswith('_h'):
                 newname = op_name[:-2]
                 layer_desc[op_idx] = (newname,op_params)
+            if op_name == 'fbcorr2':
+                newname = 'fbcorr'
+                op_params['initialize'].pop('exp1')
+                op_params['initialize'].pop('exp2')
+                op_params['initialize']['generate'] = op_params['initialize'].pop('generate1')
+                op_params['initialize'].pop('generate2')
+                layer_desc[op_idx] = (newname,op_params)
+            if op_name == 'rescale':
+                newname = 'lpool'
+                op_params['kwargs']['ker_shape'] = (1,1)
+                layer_desc[op_idx] = (newname,op_params)
     return description
 
 
@@ -304,7 +315,6 @@ class TheanoSLM(object):
         else:
             return rval
 
-
     def init_fbcorr2_h(self, x, x_shp, **kwargs):
         min_out = kwargs.get('min_out', fbcorr_.DEFAULT_MIN_OUT)
         max_out = kwargs.get('max_out', fbcorr_.DEFAULT_MAX_OUT)
@@ -344,8 +354,12 @@ class TheanoSLM(object):
 
         if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
             x1 = x ** exp1
+        else:
+            x1 = x
         if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
             x2 = x ** exp2
+        else:
+            x2 = x
         x1 = conv.conv2d(
                 x1,
                 kerns1,
@@ -360,9 +374,10 @@ class TheanoSLM(object):
                 border_mode=mode)
         if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
             x1 = tensor.maximum(x1, 0) ** (1.0 / exp1)
+        x2 = tensor.maximum(x2, 1e-8)
         if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
-            x2 = tensor.maximum(x2, 0) ** (1.0 / exp2)
-        x = x1/x2
+             x2 ** (1.0 / exp2)
+        x = x1/(1+x2)
 
         if mode == 'valid':
             x_shp = (x_shp[0], n_filters,
