@@ -292,7 +292,7 @@ class TheanoSLM(object):
             ):
         # Reference implementation:
         # ../pythor3/pythor3/operation/lnorm_/plugins/scipy_naive/scipy_naive.py
-        EPSILON = lnorm_.EPSILON
+        EPSILON = lnorm_.EPSILON  # 0.0001
         if mode != 'valid':
             raise NotImplementedError('lnorm requires mode=valid', mode)
 
@@ -321,7 +321,8 @@ class TheanoSLM(object):
         if (hasattr(stretch, '__iter__') and (stretch != 1).any()) or stretch != 1:
             arr_num = arr_num * stretch
             arr_div = arr_div * stretch
-        arr_div = tensor.switch(arr_div < (threshold + EPSILON), 1.0, arr_div)
+        if threshold is not None:
+            arr_div = tensor.switch(arr_div < (threshold + EPSILON), 1.0, arr_div)
 
         r = arr_num / arr_div
         r_shp = x_shp[0], x_shp[1], ssqshp[2], ssqshp[3]
