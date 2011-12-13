@@ -41,11 +41,14 @@ def get_pythor_safe_description(description):
                 op_params['initialize']['generate'] = op_params['initialize'].pop('generate1')
                 op_params['initialize'].pop('generate2')
                 layer_desc[op_idx] = (newname,op_params)
-            if op_name == 'rescale':
+            elif op_name == 'rescale':
                 newname = 'lpool'
                 op_params['kwargs']['ker_shape'] = (1,1)
                 op_params['kwargs']['order'] = 1
                 layer_desc[op_idx] = (newname,op_params)
+            elif op_name == 'activ':
+                layer_desc[op_idx] = None
+        description[layer_idx] = [_x for _x in layer_desc if _x is not None]
     return description
 
 
@@ -363,9 +366,9 @@ class TheanoSLM(object):
 
     def init_rescale(self, x, x_shp, stride=1):
         if stride > 1:
-            r = r[:, :, ::stride, ::stride]
+            r = x[:, :, ::stride, ::stride]
             # intdiv is tricky... so just use numpy
-            r_shp = np.empty(r_shp)[:, :, ::stride, ::stride].shape
+            r_shp = np.empty(x_shp)[:, :, ::stride, ::stride].shape
         else:
             r, r_shp = x, x_shp
         return r, r_shp
