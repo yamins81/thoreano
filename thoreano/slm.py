@@ -116,17 +116,8 @@ class TheanoSLM(object):
         self.pythor_out_shape = x_shp[2], x_shp[3], x_shp[1]
         self.s_output = x
 
-    def init_fbcorr_h(self, x, x_shp, **kwargs):
-        min_out = kwargs.get('min_out', fbcorr_.DEFAULT_MIN_OUT)
-        max_out = kwargs.get('max_out', fbcorr_.DEFAULT_MAX_OUT)
-        kwargs['max_out'] = get_into_shape(max_out)
-        kwargs['min_out'] = get_into_shape(min_out)
-        return self.init_fbcorr(x, x_shp, **kwargs)
-
     def init_fbcorr(self, x, x_shp, n_filters,
             filter_shape,
-            min_out=fbcorr_.DEFAULT_MIN_OUT,
-            max_out=fbcorr_.DEFAULT_MAX_OUT,
             stride=fbcorr_.DEFAULT_STRIDE,
             mode=fbcorr_.DEFAULT_MODE,
             generate=None):
@@ -158,6 +149,88 @@ class TheanoSLM(object):
         else:
             raise NotImplementedError('fbcorr mode', mode)
 
+        return x, x_shp
+
+    def init_fbcorr2_h(self, x, x_shp, **kwargs):
+        exp1 = kwargs.get('exp1', 1)
+        exp2 = kwargs.get('exp2', 1)
+        kwargs['exp1'] = get_into_shape(exp1)
+        kwargs['exp2'] = get_into_shape(exp2)
+        return self.init_fbcorr2(x, x_shp, **kwargs)
+
+    def init_fbcorr2(self, x, x_shp, n_filters,
+            filter_shape,
+            mode=fbcorr_.DEFAULT_MODE,
+            exp1 = 1,
+            exp2 = 1,
+            generate1=None,
+            generate2=None
+            ):
+        # Reference implementation:
+        # ../pythor3/pythor3/operation/fbcorr_/plugins/scipy_naive/scipy_naive.py
+
+        fake_x = np.empty((x_shp[2], x_shp[3], x_shp[1]),
+                x.dtype)
+        kerns1 = self.SLMP._get_filterbank(fake_x,
+                dict(n_filters=n_filters,
+                    filter_shape=filter_shape,
+                    generate=generate1))
+        kerns1 = kerns1.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
+        kerns2 = self.SLMP._get_filterbank(fake_x,
+                dict(n_filters=n_filters,
+                    filter_shape=filter_shape,
+                    generate=generate2))
+        kerns2 = kerns2.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
+
+        if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
+            x1 = x ** exp1
+        else:
+            x1 = x
+        if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
+            x2 = x ** exp2
+        else:
+            x2 = x
+        x1 = conv.conv2d(
+                x1,
+                kerns1,
+                image_shape=x_shp,
+                filter_shape=kerns1.shape,
+                border_mode=mode)
+        x2 = conv.conv2d(
+                x2,
+                kerns2,
+                image_shape=x_shp,
+                filter_shape=kerns2.shape,
+                border_mode=mode)
+        if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
+            x1 = tensor.real(x1 ** (1.0 / exp1))
+        if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
+            x2 = tensor.real(x2 ** (1.0 / exp2))
+        x = x1/x2
+
+        if mode == 'valid':
+            x_shp = (x_shp[0], n_filters,
+                    x_shp[2] - filter_shape[0] + 1,
+                    x_shp[3] - filter_shape[1] + 1)
+        elif mode == 'full':
+            x_shp = (x_shp[0], n_filters,
+                    x_shp[2] + filter_shape[0] - 1,
+                    x_shp[3] + filter_shape[1] - 1)
+        else:
+            raise NotImplementedError('fbcorr mode', mode)
+
+        return x, x_shp
+
+    def init_activ_h(self, x, x_shp, **kwargs):
+        min_out = kwargs.get('min_out', fbcorr_.DEFAULT_MIN_OUT)
+        max_out = kwargs.get('max_out', fbcorr_.DEFAULT_MAX_OUT)
+        kwargs['max_out'] = get_into_shape(max_out)
+        kwargs['min_out'] = get_into_shape(min_out)
+        return self.init_activ(x, x_shp, **kwargs)
+
+    def init_activ(self, x, x_shp,
+                   min_out=fbcorr_.DEFAULT_MIN_OUT,
+                   max_out=fbcorr_.DEFAULT_MAX_OUT):
         if min_out is None and max_out is None:
             return x, x_shp
         elif min_out is None:
@@ -315,99 +388,3 @@ class TheanoSLM(object):
         else:
             return rval
 
-    def init_fbcorr2_h(self, x, x_shp, **kwargs):
-        min_out = kwargs.get('min_out', fbcorr_.DEFAULT_MIN_OUT)
-        max_out = kwargs.get('max_out', fbcorr_.DEFAULT_MAX_OUT)
-        kwargs['max_out'] = get_into_shape(max_out)
-        kwargs['min_out'] = get_into_shape(min_out)
-        exp1 = kwargs.get('exp1', 1)
-        exp2 = kwargs.get('exp2', 1)
-        kwargs['exp1'] = get_into_shape(exp1)
-        kwargs['exp2'] = get_into_shape(exp2)
-        return self.init_fbcorr2(x, x_shp, **kwargs)
-
-    def init_fbcorr2(self, x, x_shp, n_filters,
-            filter_shape,
-            min_out=fbcorr_.DEFAULT_MIN_OUT,
-            max_out=fbcorr_.DEFAULT_MAX_OUT,
-            mode=fbcorr_.DEFAULT_MODE,
-            exp1 = 1,
-            exp2 = 1,
-            generate1=None,
-            generate2=None
-            ):
-        # Reference implementation:
-        # ../pythor3/pythor3/operation/fbcorr_/plugins/scipy_naive/scipy_naive.py
-
-        fake_x = np.empty((x_shp[2], x_shp[3], x_shp[1]),
-                x.dtype)
-        kerns1 = self.SLMP._get_filterbank(fake_x,
-                dict(n_filters=n_filters,
-                    filter_shape=filter_shape,
-                    generate=generate1))
-        kerns1 = kerns1.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
-        kerns2 = self.SLMP._get_filterbank(fake_x,
-                dict(n_filters=n_filters,
-                    filter_shape=filter_shape,
-                    generate=generate2))
-        kerns2 = kerns2.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
-
-        if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
-            x1 = x ** exp1
-        else:
-            x1 = x
-        if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
-            x2 = x ** exp2
-        else:
-            x2 = x
-        x1 = conv.conv2d(
-                x1,
-                kerns1,
-                image_shape=x_shp,
-                filter_shape=kerns1.shape,
-                border_mode=mode)
-        x2 = conv.conv2d(
-                x2,
-                kerns2,
-                image_shape=x_shp,
-                filter_shape=kerns2.shape,
-                border_mode=mode)
-        if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
-            x1 = tensor.maximum(x1, 0) ** (1.0 / exp1)
-        if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
-            x2 = tensor.abs_(x2 ** (1.0 / exp2))
-        x = x1/x2
-
-        if mode == 'valid':
-            x_shp = (x_shp[0], n_filters,
-                    x_shp[2] - filter_shape[0] + 1,
-                    x_shp[3] - filter_shape[1] + 1)
-        elif mode == 'full':
-            x_shp = (x_shp[0], n_filters,
-                    x_shp[2] + filter_shape[0] - 1,
-                    x_shp[3] + filter_shape[1] - 1)
-        else:
-            raise NotImplementedError('fbcorr mode', mode)
-
-        if min_out is None and max_out is None:
-            return x, x_shp
-        elif min_out is None:
-            return tensor.minimum(x, max_out), x_shp
-        elif max_out is None:
-            return tensor.maximum(x, min_out), x_shp
-        else:
-            return tensor.clip(x, min_out, max_out), x_shp
-
-    def init_rescale(self, x, x_shp,
-            stride=1,
-            mode='valid'):
-
-        if stride > 1:
-            r = x[:, :, ::stride, ::stride]
-            # intdiv is tricky... so just use numpy
-            r_shp = np.empty(x_shp)[:, :, ::stride, ::stride].shape
-        else:
-            r = x
-            r_shp = x_shp
-
-        return r, r_shp
