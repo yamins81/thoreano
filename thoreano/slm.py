@@ -374,10 +374,9 @@ class TheanoSLM(object):
                 border_mode=mode)
         if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
             x1 = tensor.maximum(x1, 0) ** (1.0 / exp1)
-        x2 = tensor.maximum(x2, 1e-8)
         if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
-             x2 ** (1.0 / exp2)
-        x = x1/(1+x2)
+            x2 = tensor.abs_(x2 ** (1.0 / exp2))
+        x = x1/x2
 
         if mode == 'valid':
             x_shp = (x_shp[0], n_filters,
