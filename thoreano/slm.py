@@ -44,6 +44,7 @@ def get_pythor_safe_description(description):
             if op_name == 'rescale':
                 newname = 'lpool'
                 op_params['kwargs']['ker_shape'] = (1,1)
+                op_params['kwargs']['order'] = 1
                 layer_desc[op_idx] = (newname,op_params)
     return description
 
@@ -346,19 +347,27 @@ class TheanoSLM(object):
             o1 = order == 1
             o2 = (order == int(order))
 
-        if o1:
-            r, r_shp = self.boxconv(x, x_shp, ker_shape)
-        elif o2:
-            r, r_shp = self.boxconv(x ** order, x_shp, ker_shape)
-            r = tensor.maximum(r, 0) ** (1.0 / order)
+        if ker_shape != (1,1):
+            if o1:
+                r, r_shp = self.boxconv(x, x_shp, ker_shape)
+            elif o2:
+                r, r_shp = self.boxconv(x ** order, x_shp, ker_shape)
+                r = tensor.maximum(r, 0) ** (1.0 / order)
+            else:
+                r, r_shp = self.boxconv(abs(x) ** order, x_shp, ker_shape)
+                r = tensor.maximum(r, 0) ** (1.0 / order)
         else:
-            r, r_shp = self.boxconv(abs(x) ** order, x_shp, ker_shape)
-            r = tensor.maximum(r, 0) ** (1.0 / order)
+            r, r_shp = x, x_shp
 
+        return r, r_shp
+
+    def init_rescale(self, x, x_shp, stride=1):
         if stride > 1:
             r = r[:, :, ::stride, ::stride]
             # intdiv is tricky... so just use numpy
             r_shp = np.empty(r_shp)[:, :, ::stride, ::stride].shape
+        else:
+            r, r_shp = x, x_shp
         return r, r_shp
 
     def get_theano_fn(self):
