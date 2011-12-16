@@ -508,8 +508,7 @@ class ExtractedFeatures(object):
 
 
 class TheanoExtractedFeatures(ExtractedFeatures):
-    def __init__(self, X, batchsize, configs, filenames, tlimit=DEFAULT_TLIMIT,
-                 use_theano=True):
+    def __init__(self, X, batchsize, configs, filenames, tlimit=DEFAULT_TLIMIT):
         slms = [slm_from_config(config, X.shape, batchsize) for config in configs]
         feature_shps = [(X.shape[0],) + slm.pythor_out_shape for slm in slms]
         super(TheanoExtractedFeatures, self).__init__(X, feature_shps,
