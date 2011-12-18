@@ -136,7 +136,7 @@ def train_scikits(train_Xy,
         trace = None
     model = train_scikits_core(train_features, train_ids, model_type, **model_kwargs)
     train_data = {'train_mean':train_mean, 'train_std': train_std, 'trace': trace}
-    if normalize:
+    if normalization:
         test_features, train_mean, train_std, trace = normalize([test_features], data=train_data, trace_normalize=trace_normalize)
     test_prediction = model.predict(test_features)
     train_prediction = model.predict(train_features)
@@ -241,8 +241,7 @@ def get_regression_result(train_actual, test_actual, train_predicted, test_predi
     return test_results
 
 def regression_stats(actual, predicted, prefix='test'):
-    test_error = (1 - np.linalg.norm(actual - predicted)**2
-                                      / np.linalg.norm(actual)**2)
+    test_error = np.linalg.norm(actual - predicted)**2 / np.linalg.norm(actual)**2
     return {prefix+'_error' : test_error}
 
 def get_result(train_labels, test_labels, train_prediction, test_prediction, labels):
