@@ -547,7 +547,7 @@ class FeatureExtractor(object):
         if TEST:
             print('FeatureExtractor running in TESTING mode')
             self.verbose = True
-            self.n_to_extract = max(10 * batchsize, self.n_to_extract)
+            self.n_to_extract = min(10 * batchsize, self.n_to_extract)
         assert self.n_to_extract <= len(self.indices)
 
         # -- convenience
@@ -606,6 +606,7 @@ class FeatureExtractor(object):
             arr.size * arr.dtype.itemsize / float(1e9)))
         i = 0
         t0 = time.time()
+        print('about to extract %d features' % self.n_to_extract)
         while True:
             if i + batchsize >= len(self.indices):
                 assert i < len(self.indices)
