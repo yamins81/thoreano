@@ -168,7 +168,7 @@ def train_scikits_core(train_features,
 
     if model_type == 'liblinear':
         clf = sklearn_svm.LinearSVC(**kwargs)
-    if model_type == 'libSVM':
+    elif model_type == 'libSVM':
         clf = sklearn_svm.SVC(**kwargs)
     elif model_type == 'LRL':
         clf = LogisticRegression(**kwargs)
