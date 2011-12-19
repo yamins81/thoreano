@@ -618,7 +618,10 @@ class FeatureExtractor(object):
                     done = False
                 else:
                     done = True
+            t_load = time.time()
             xi = np.asarray(self.X[inds])
+            if self.verbose:
+                print('load: ', time.time() - t_load)
             t1 = time.time()
             feature_batch = self.slm.process_batch(xi)
             if self.verbose:
