@@ -523,8 +523,7 @@ class FeatureExtractor(object):
             tlimit=float('inf'),
             batchsize=4,
             filename='FeatureExtractor.npy',
-            verbose=False,
-            TEST=False):
+            verbose=False):
         """
         X - 4-tensor of images
         feature_shp - 4-tensor of output feature shape (len matches X)
@@ -548,7 +547,7 @@ class FeatureExtractor(object):
         assert self.n_to_extract <= len(X)
 
         # -- convenience
-        self.feature_shp = (self.n_to_extract,) + self.slm.pythor_out_shape
+        self.feature_shp = (len(X),) + self.slm.pythor_out_shape
 
     def __enter__(self):
         if self.filename:
@@ -610,7 +609,10 @@ class FeatureExtractor(object):
                 done = True
             else:
                 xi = np.asarray(self.X[i:i+batchsize])
-                done = False
+                if i + batchsize < self.n_to_extract:
+                    done = False
+                else:
+                    done = True
             t1 = time.time()
             feature_batch = self.slm.process_batch(xi)
             if self.verbose:

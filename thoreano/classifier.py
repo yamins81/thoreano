@@ -14,7 +14,7 @@ def train_asgd_classifier_normalize(trainXy, testXy, verbose=False, batchsize=10
 
     train_features, train_labels = trainXy
     test_features, test_labels = testXy
-    train_features, train_mean, train_std, trace = normalize([train_features, test_features],
+    train_features, test_features, train_mean, train_std, trace = normalize([train_features, test_features],
                                                               trace_normalize=trace_normalize)
     trainXy = (train_features, train_labels)
     testXy = (test_features, test_labels)
@@ -48,7 +48,7 @@ def train_asgd_classifier(train_Xy, test_Xy,
         print 'training classifier: n_train=%i n_test=%i n_features=%i' % (
                 n_examples, len(test_X), n_features)
 
-    assert labelset == set(range(len(labelset)))
+    assert labelset == set(range(len(labelset))), labelset
 
     if labelset == set([0, 1]):
         labels = [1, 1]
