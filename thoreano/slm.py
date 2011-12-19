@@ -656,6 +656,26 @@ class FeatureExtractor(object):
             return arr
 
 
+class ThoreanoFeatureExtractor(FeatureExtractor):
+    def __init__(self, X, config,
+            tlimit=float('inf'),
+            batchsize=4,
+            filename='FeatureExtractor.npy',
+            indices=None,
+            verbose=False):
+    self.config = config
+    if indices is None:
+        indices = range(len(X))
+    relevant_shape = (len(indices),) + X.shape[1:]
+    slm = slm_from_config(config, relevant_shape, batchsize=batchsize)
+    super(ThoreanoFeatureExtractor, self).__init__(X, slm,
+            tlimit=tlimit,
+            batchsize=batchsize,
+            filename=filename,
+            indices=indices,
+            verbose=verbose)
+
+
 def slm_from_config(config, X_shape, batchsize):
     config = son_to_py(config)
     desc = copy.deepcopy(config['desc'])
