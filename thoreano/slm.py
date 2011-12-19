@@ -523,6 +523,7 @@ class FeatureExtractor(object):
             tlimit=float('inf'),
             batchsize=4,
             filename='FeatureExtractor.npy',
+            indices=None,
             verbose=False):
         """
         X - 4-tensor of images
@@ -539,15 +540,18 @@ class FeatureExtractor(object):
         self.X = X
         self.slm = slm
         self.verbose = verbose
-        self.n_to_extract = len(X)
+        if indices is None:
+            indices = range(len(X))
+        self.indices = indices
+        self.n_to_extract = len(self.indices)
         if TEST:
             print('FeatureExtractor running in TESTING mode')
             self.verbose = True
-            self.n_to_extract = 10 * batchsize
-        assert self.n_to_extract <= len(X)
+            self.n_to_extract = max(10 * batchsize, self.n_to_extract)
+        assert self.n_to_extract <= len(self.indices)
 
         # -- convenience
-        self.feature_shp = (len(X),) + self.slm.pythor_out_shape
+        self.feature_shp = (len(self.indices),) + self.slm.pythor_out_shape
 
     def __enter__(self):
         if self.filename:
@@ -594,7 +598,7 @@ class FeatureExtractor(object):
         """
         Fill arr with the first len(arr) features of self.X.
         """
-        assert len(arr) <= len(self.X)
+        assert len(arr) <= len(self.indices)
         batchsize = self.batchsize
         tlimit = self.tlimit
         print('Total size: %i bytes (%.2f GB)' % (
@@ -603,12 +607,14 @@ class FeatureExtractor(object):
         i = 0
         t0 = time.time()
         while True:
-            if i + batchsize >= len(arr):
-                assert i < len(arr)
-                xi = np.asarray(self.X[-batchsize:])
+            if i + batchsize >= len(self.indices):
+                assert i < len(self.indices)
+                inds = self.indices[-batchsize:]
+                xi = np.asarray(self.Xinds)
                 done = True
             else:
-                xi = np.asarray(self.X[i:i+batchsize])
+                inds = self.indices[i:i+batchsize]
+                xi = np.asarray(self.X[inds])
                 if i + batchsize < self.n_to_extract:
                     done = False
                 else:
