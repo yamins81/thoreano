@@ -610,15 +610,14 @@ class FeatureExtractor(object):
             if i + batchsize >= len(self.indices):
                 assert i < len(self.indices)
                 inds = self.indices[-batchsize:]
-                xi = np.asarray(self.Xinds)
                 done = True
             else:
                 inds = self.indices[i:i+batchsize]
-                xi = np.asarray(self.X[inds])
                 if i + batchsize < self.n_to_extract:
                     done = False
                 else:
                     done = True
+            xi = np.asarray(self.X[inds])
             t1 = time.time()
             feature_batch = self.slm.process_batch(xi)
             if self.verbose:
