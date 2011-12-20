@@ -107,15 +107,13 @@ def train_scikits(train_Xy,
                   model_type,
                   regression=False,
                   model_kwargs=None,
+                  fit_kwargs=None,
                   normalization=True,
                   trace_normalize=False):
 
     """
 
     """
-
-    if model_kwargs is None:
-        model_kwargs = {}
 
     train_features, train_labels = train_Xy
     test_features, test_labels = test_Xy
@@ -134,7 +132,7 @@ def train_scikits(train_Xy,
         train_mean = None
         train_std = None
         trace = None
-    model = train_scikits_core(train_features, train_ids, model_type, **model_kwargs)
+    model = train_scikits_core(train_features, train_ids, model_type, model_kwargs, fit_kwargs)
     train_data = {'train_mean':train_mean, 'train_std': train_std, 'trace': trace}
     if normalization:
         test_features, train_mean, train_std, trace = normalize([test_features], data=train_data, trace_normalize=trace_normalize)
@@ -155,7 +153,8 @@ def train_scikits(train_Xy,
 def train_scikits_core(train_features,
                      train_labels,
                      model_type,
-                     **kwargs
+                     model_kwargs,
+                     fit_kwargs
                      ):
     """ Classifier training using SVMs
 
@@ -165,25 +164,29 @@ def train_scikits_core(train_features,
     svm_eps = eps of svm
     svm_C = C parameter of svm
     model_type = liblinear or libsvm"""
-
+    if model_kwargs is None:
+        model_kwargs = {}
+    if fit_kwargs is None:
+        fit_kwargs = {}
     if model_type == 'liblinear':
-        clf = sklearn_svm.LinearSVC(**kwargs)
+        cls = sklearn_svm.LinearSVC
     elif model_type == 'libSVM':
-        clf = sklearn_svm.SVC(**kwargs)
+        cls = sklearn_svm.SVC
     elif model_type == 'LRL':
-        clf = LogisticRegression(**kwargs)
+        cls = LogisticRegression
     elif model_type == 'MCC':
-        clf = CorrelationClassifier(**kwargs)
+        cls = CorrelationClassifier
     elif model_type.startswith('svm.'):
         ct = model_type.split('.')[-1]
-        clf = getattr(sklearn_svm,ct)(**kwargs)
+        cls = getattr(sklearn_svm,ct)
     elif model_type.startswith('linear_model.'):
         ct = model_type.split('.')[-1]
-        clf = getattr(sklearn_linear_model,ct)(**kwargs)
+        cls = getattr(sklearn_linear_model,ct)
     else:
         raise ValueError('Model type %s not recognized' % model_type)
 
-    clf.fit(train_features, train_labels)
+    clf = cls(**model_kwargs)
+    clf.fit(train_features, train_labels, **fit_kwargs)
     return clf
 
 
@@ -241,8 +244,9 @@ def get_regression_result(train_actual, test_actual, train_predicted, test_predi
     return test_results
 
 def regression_stats(actual, predicted, prefix='test'):
-    test_error = np.linalg.norm(actual - predicted)**2 / np.linalg.norm(actual)**2
-    return {prefix+'_error' : test_error}
+    a_mean = actual.mean()
+    test_rsquared = 1 - np.linalg.norm(actual - predicted)**2 / np.linalg.norm(actual-a_mean)**2
+    return {prefix+'_rsquared' : test_rsquared}
 
 def get_result(train_labels, test_labels, train_prediction, test_prediction, labels):
     result = {'train_errors': (train_labels != train_prediction).tolist(),
