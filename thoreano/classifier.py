@@ -127,15 +127,19 @@ def train_scikits(train_Xy,
 
     #do normalization
     if normalization:
-        train_features, train_mean, train_std, trace = normalize([train_features], trace_normalize=trace_normalize)
+        train_features, train_mean, train_std, trace = normalize([train_features],
+                                                                 trace_normalize=trace_normalize)
     else:
         train_mean = None
         train_std = None
         trace = None
-    model = train_scikits_core(train_features, train_ids, model_type, model_kwargs, fit_kwargs)
+    model = train_scikits_core(train_features, train_ids, model_type, model_kwargs,
+                              fit_kwargs)
     train_data = {'train_mean':train_mean, 'train_std': train_std, 'trace': trace}
     if normalization:
-        test_features, train_mean, train_std, trace = normalize([test_features], data=train_data, trace_normalize=trace_normalize)
+        test_features, train_mean, train_std, trace = normalize([test_features],
+                                                                data=train_data,
+                                                                trace_normalize=trace_normalize)
     test_prediction = model.predict(test_features)
     train_prediction = model.predict(train_features)
     if regression:
@@ -333,7 +337,7 @@ def auc_from_prec_and_rec(prec,rec):
 ##utils##
 #########
 
-def normalize(feats, trace_normalize=True, data=None):
+def normalize(feats, trace_normalize=False, data=None):
     """Performs normalizations before training on a list of feature array/label
     pairs. first feature array in list is taken by default to be training set
     and norms are computed relative to that one.
