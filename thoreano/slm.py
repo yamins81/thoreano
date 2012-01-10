@@ -6,6 +6,7 @@ import itertools
 import tempfile
 import os.path as path
 import cPickle
+import hashlib
 
 import numpy as np
 import theano
@@ -33,6 +34,10 @@ def dict_add(a, b):
     rval = dict(a)
     rval.update(b)
     return rval
+
+
+def random_id():
+    return hashlib.sha1(str(np.random.randint(10,size=(32,)))).hexdigest()
 
 
 def get_pythor_safe_description(description):
@@ -522,7 +527,7 @@ class FeatureExtractor(object):
     def __init__(self, X, slm,
             tlimit=float('inf'),
             batchsize=4,
-            filename='FeatureExtractor.npy',
+            filename=None,
             indices=None,
             verbose=False):
         """
@@ -534,6 +539,9 @@ class FeatureExtractor(object):
 
         returns - read-only memmap of features
         """
+        if filename is None:
+            rand_id = random_id()
+            filename = 'FeatureExtractor_' + rand_id + '.npy'
         self.filename = filename
         self.batchsize = batchsize
         self.tlimit = tlimit
@@ -664,7 +672,7 @@ class ThoreanoFeatureExtractor(FeatureExtractor):
     def __init__(self, X, config,
             tlimit=float('inf'),
             batchsize=4,
-            filename='FeatureExtractor.npy',
+            filename=None,
             indices=None,
             verbose=False):
         self.config = config
