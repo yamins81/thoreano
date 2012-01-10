@@ -102,8 +102,33 @@ from scikits.learn import svm as sklearn_svm
 from scikits.learn import linear_model as sklearn_linear_model
 from scikits.learn.linear_model.logistic import LogisticRegression
 
+
 def train_scikits(train_Xy,
                   test_Xy,
+                  model_type,
+                  regression=False,
+                  model_kwargs=None,
+                  fit_kwargs=None,
+                  normalization=True,
+                  trace_normalize=False):
+
+    model, train_data = train_only_scikits(train_Xy,
+                  model_type,
+                  regression=regression,
+                  model_kwargs=model_kwargs,
+                  fit_kwargs=fit_kwargs,
+                  normalization=normalization,
+                  trace_normalize=trace_normalize)
+
+    return evaluate(model,
+            test_Xy,
+            train_data,
+            regression=regression,
+            normalization=normalization,
+            trace_normalize=trace_normalize)
+
+
+def train_only_scikits(train_Xy,
                   model_type,
                   regression=False,
                   model_kwargs=None,
@@ -116,7 +141,6 @@ def train_scikits(train_Xy,
     """
 
     train_features, train_labels = train_Xy
-    test_features, test_labels = test_Xy
 
     if not regression:
         labels = sp.unique(sp.concatenate((train_labels, test_labels)))
@@ -124,6 +148,7 @@ def train_scikits(train_Xy,
         train_ids = sp.array([label_to_id[i] for i in train_labels])
     else:
         train_ids = train_labels
+        labels = None
 
     #do normalization
     if normalization:
@@ -135,23 +160,9 @@ def train_scikits(train_Xy,
         trace = None
     model = train_scikits_core(train_features, train_ids, model_type, model_kwargs,
                               fit_kwargs)
-    train_data = {'train_mean':train_mean, 'train_std': train_std, 'trace': trace}
-    if normalization:
-        test_features, train_mean, train_std, trace = normalize([test_features],
-                                                                data=train_data,
-                                                                trace_normalize=trace_normalize)
-    test_prediction = model.predict(test_features)
-    train_prediction = model.predict(train_features)
-    if regression:
-        result = get_regression_result(train_labels, test_labels, train_prediction, test_prediction)
-    else:
-        test_prediction = labels[test_prediction]
-        train_prediction = labels[train_prediction]
-        result = get_result(train_labels, test_labels, train_prediction, test_prediction, labels)
-    result['train_mean'] = train_mean
-    result['train_std'] = train_std
-    result['trace'] = trace
-    return model, result
+    train_data = {'train_mean':train_mean, 'train_std': train_std, 'trace': trace, 'labels':labels}
+
+    return model, train_data
 
 
 def train_scikits_core(train_features,
@@ -199,13 +210,35 @@ def train_scikits_core(train_features,
 #evaluation#
 ############
 
+def evaluate(model,
+            test_Xy,
+            train_data,
+            regression=False,
+            normalization=True,
+            trace_normalize=False):
+
+    test_features, test_labels = test_Xy
+    if normalization:
+        test_features, train_mean, train_std, trace = normalize([test_features],
+                                                                data=train_data,
+                                                                trace_normalize=trace_normalize)
+    test_prediction = model.predict(test_features)
+    if regression:
+        result = regression_stats(test_labels,test_prediction)
+    else:
+        test_prediction = labels[test_prediction]
+        result = get_test_result(test_labels, test_prediction, train_data['labels'])
+    result.update(train_data)
+    return model, result
+
+
 def evaluate_classifier_normalize(model, test_Xy, data, trace_normalize=False, verbose=False, batchsize=10):
     test_X, test_y = test_Xy
     test_X = normalize([test_X], data=data, trace_normalize=trace_normalize)
-    return evaluate_classifier(model, (test_X, test_y), batchsize=batchsize, verbose=verbose)
+    return evaluate_batch_classifier(model, (test_X, test_y), batchsize=batchsize, verbose=verbose)
 
 
-def evaluate_classifier(model, test_Xy, labels,
+def evaluate_batch(model, test_Xy, labels,
         batchsize=10,
         verbose=0):
 
@@ -234,6 +267,8 @@ def evaluate_classifier(model, test_Xy, labels,
     vscore_std = np.sqrt(vscore * (1.0 - vscore) / len(test_X))
     result = get_test_result(test_y, test_prediction, labels)
     return result
+
+
 
 
 
