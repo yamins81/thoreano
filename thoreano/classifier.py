@@ -143,7 +143,7 @@ def train_only_scikits(train_Xy,
     train_features, train_labels = train_Xy
 
     if not regression:
-        labels = sp.unique(sp.concatenate((train_labels, test_labels)))
+        labels = sp.unique(train_labels)
         label_to_id = dict([(k,v) for v, k in enumerate(labels)])
         train_ids = sp.array([label_to_id[i] for i in train_labels])
     else:
@@ -226,8 +226,9 @@ def evaluate(model,
     if regression:
         result = regression_stats(test_labels,test_prediction)
     else:
+        labels = train_data['labels']
         test_prediction = labels[test_prediction]
-        result = get_test_result(test_labels, test_prediction, train_data['labels'])
+        result = get_test_result(test_labels, test_prediction, labels)
     result.update(train_data)
     return model, result
 
