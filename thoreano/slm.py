@@ -412,7 +412,7 @@ class TheanoSLM(object):
 
 
 TEST = False
-TEST_NUM = 200
+TEST_NUM = 40
 DEFAULT_TLIMIT = None
 
 class ExtractedFeatures(object):
@@ -547,7 +547,7 @@ class FeatureExtractor(object):
         if TEST:
             print('FeatureExtractor running in TESTING mode')
             self.verbose = True
-            self.n_to_extract = min(10 * batchsize, self.n_to_extract)
+            self.n_to_extract = min(TEST_NUM, self.n_to_extract)
         assert self.n_to_extract <= len(self.indices)
 
         # -- convenience
