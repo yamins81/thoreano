@@ -120,12 +120,24 @@ def train_scikits(train_Xy,
                   normalization=normalization,
                   trace_normalize=trace_normalize)
 
-    return evaluate(model,
+    model, train_result = evaluate(model,
+            train_Xy,
+            train_data,
+            regression=regression,
+            normalization=normalization,
+            trace_normalize=trace_normalize,
+            prefix='train')
+            
+    model, test_result = evaluate(model,
             test_Xy,
             train_data,
             regression=regression,
             normalization=normalization,
-            trace_normalize=trace_normalize)
+            trace_normalize=trace_normalize,
+            prefix='test')
+    train_result.update(test_result)
+            
+    return model, train_result
 
 
 def train_only_scikits(train_Xy,
@@ -215,20 +227,21 @@ def evaluate(model,
             train_data,
             regression=False,
             normalization=True,
-            trace_normalize=False):
+            trace_normalize=False,
+            prefix=None):
 
     test_features, test_labels = test_Xy
     if normalization:
         test_features, train_mean, train_std, trace = normalize([test_features],
                                                                 data=train_data,
-                                                                trace_normalize=trace_normalize)
+                                                trace_normalize=trace_normalize)
     test_prediction = model.predict(test_features)
     if regression:
-        result = regression_stats(test_labels,test_prediction)
+        result = regression_stats(test_labels,test_prediction, prefix=prefix)
     else:
         labels = train_data['labels']
         test_prediction = labels[test_prediction]
-        result = get_test_result(test_labels, test_prediction, labels)
+        result = get_test_result(test_labels, test_prediction, labels, prefix=prefix)
     result.update(train_data)
     return model, result
 
@@ -300,13 +313,13 @@ def get_result(train_labels, test_labels, train_prediction, test_prediction, lab
     return result
 
 
-def get_test_result(test_labels, test_prediction, labels):
+def get_test_result(test_labels, test_prediction, labels, prefix='test'):
     result = {
-     'test_errors': (test_labels != test_prediction).tolist(),
-     'test_prediction' : test_prediction.tolist(),
+     prefix + '_errors': (test_labels != test_prediction).tolist(),
+     prefix + '_prediction' : test_prediction.tolist(),
      'labels': labels
      }
-    stats = multiclass_test_stats(test_labels, test_prediction, labels)
+    stats = multiclass_test_stats(test_labels, test_prediction, labels, prefix=prefix)
     result.update(stats)
     return result
 
