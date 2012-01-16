@@ -689,16 +689,20 @@ class ThoreanoFeatureExtractor(FeatureExtractor):
 
 
 def slm_from_config(config, X_shape, batchsize):
+    return slm_from_config_base(config, X_shape[1:], batchsize)
+
+
+def slm_from_config_base(config, M_shape, batchsize):
     config = son_to_py(config)
     desc = copy.deepcopy(config['desc'])
     interpret_model(desc)
-    if len(X_shape) == 3:
+    if len(M_shape) == 2:
         t_slm = TheanoSLM(
-                in_shape=(batchsize,) + X_shape[1:] + (1,),
+                in_shape=(batchsize,) + M_shape + (1,),
                 description=desc)
-    elif len(X_shape) == 4:
+    elif len(M_shape) == 3:
         t_slm = TheanoSLM(
-                in_shape=(batchsize,) + X_shape[1:],
+                in_shape=(batchsize,) + M_shape,
                 description=desc)
     else:
         raise NotImplementedError()
