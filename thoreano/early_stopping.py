@@ -98,13 +98,14 @@ def fit_w_early_stopping(model, es,
 
     tpos = 0
     best_train_prediction = []
+    pbatchsize = 10*batchsize
     while tpos < len(train_X):
-        xi = train_X[vpos:vpos + batchsize]
-        yi = train_y[vpos:vpos + batchsize]
+        xi = train_X[tpos:tpos + pbatchsize]
+        yi = train_y[tpos:tpos + pbatchsize]
         pi = model.predict(xi)
         best_train_prediction.extend(pi.tolist())
         assert np.all(np.isfinite(pi))
-        vpos += batchsize
+        tpos += pbatchsize
     best_train_prediction = np.array(best_train_prediction)
 
     return best_model, es, best_test_prediction, best_train_prediction

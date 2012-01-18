@@ -250,9 +250,9 @@ def evaluate_classifier_normalize(model, test_Xy, data, trace_normalize=False, v
     return evaluate_batch_classifier(model, (test_X, test_y), batchsize=batchsize, verbose=verbose)
 
 
-def evaluate_batch(model, test_Xy, labels,
+def evaluate_batch_classifier(model, test_Xy, labels,
         batchsize=10,
-        verbose=0):
+        verbose=False):
 
     test_X, test_y = test_Xy
 
