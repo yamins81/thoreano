@@ -62,8 +62,6 @@ def train_asgd_classifier(train_Xy, test_Xy,
                     l2_regularization=1e-3,
                     sgd_step_size0=step_size0)
 
-        if use_theano:
-            print "train_classifier not using theano for binary classif."
     else:
         # MULTI-CLASS CLASSIFICATION
         labels = range(len(labelset))
