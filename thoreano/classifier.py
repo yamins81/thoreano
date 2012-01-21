@@ -63,8 +63,6 @@ def train_asgd_classifier(train_Xy, test_Xy,
             return asgd.naive_asgd.NaiveBinaryASGD(
                     n_features=n_features)
 
-        if use_theano:
-            print "train_classifier not using theano for binary classif."
     else:
         # MULTI-CLASS CLASSIFICATION
         labels = range(len(labelset))
@@ -244,9 +242,9 @@ def evaluate_classifier_normalize(model, test_Xy, data, trace_normalize=False, v
     return evaluate_batch_classifier(model, (test_X, test_y), batchsize=batchsize, verbose=verbose)
 
 
-def evaluate_batch(model, test_Xy, labels,
+def evaluate_batch_classifier(model, test_Xy, labels,
         batchsize=10,
-        verbose=0):
+        verbose=False):
 
     test_X, test_y = test_Xy
 
