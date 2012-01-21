@@ -137,17 +137,20 @@ class TheanoSLM(object):
             filter_shape,
             stride=fbcorr_.DEFAULT_STRIDE,
             mode=fbcorr_.DEFAULT_MODE,
-            generate=None):
+            generate=None,
+            kerns=None):
         # Reference implementation:
         # ../pythor3/pythor3/operation/fbcorr_/plugins/scipy_naive/scipy_naive.py
         if stride != fbcorr_.DEFAULT_STRIDE:
             raise NotImplementedError('stride is not used in reference impl.')
         fake_x = np.empty((x_shp[2], x_shp[3], x_shp[1]),
                 x.dtype)
-        kerns = self.SLMP._get_filterbank(fake_x,
-                dict(n_filters=n_filters,
-                    filter_shape=filter_shape,
-                    generate=generate))
+        if kerns is None:
+            assert generate is not None
+            kerns = self.SLMP._get_filterbank(fake_x,
+                                              dict(n_filters=n_filters,
+                                                   filter_shape=filter_shape,
+                                                   generate=generate))
         kerns = kerns.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
         x = conv.conv2d(
                 x,
@@ -155,76 +158,6 @@ class TheanoSLM(object):
                 image_shape=x_shp,
                 filter_shape=kerns.shape,
                 border_mode=mode)
-        if mode == 'valid':
-            x_shp = (x_shp[0], n_filters,
-                    x_shp[2] - filter_shape[0] + 1,
-                    x_shp[3] - filter_shape[1] + 1)
-        elif mode == 'full':
-            x_shp = (x_shp[0], n_filters,
-                    x_shp[2] + filter_shape[0] - 1,
-                    x_shp[3] + filter_shape[1] - 1)
-        else:
-            raise NotImplementedError('fbcorr mode', mode)
-
-        return x, x_shp
-
-    def init_fbcorr2_h(self, x, x_shp, **kwargs):
-        exp1 = kwargs.get('exp1', 1)
-        exp2 = kwargs.get('exp2', 1)
-        kwargs['exp1'] = get_into_shape(exp1)
-        kwargs['exp2'] = get_into_shape(exp2)
-        return self.init_fbcorr2(x, x_shp, **kwargs)
-
-    def init_fbcorr2(self, x, x_shp, n_filters,
-            filter_shape,
-            mode=fbcorr_.DEFAULT_MODE,
-            exp1 = 1,
-            exp2 = 1,
-            generate1=None,
-            generate2=None
-            ):
-        # Reference implementation:
-        # ../pythor3/pythor3/operation/fbcorr_/plugins/scipy_naive/scipy_naive.py
-
-        fake_x = np.empty((x_shp[2], x_shp[3], x_shp[1]),
-                x.dtype)
-        kerns1 = self.SLMP._get_filterbank(fake_x,
-                dict(n_filters=n_filters,
-                    filter_shape=filter_shape,
-                    generate=generate1))
-        kerns1 = kerns1.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
-        kerns2 = self.SLMP._get_filterbank(fake_x,
-                dict(n_filters=n_filters,
-                    filter_shape=filter_shape,
-                    generate=generate2))
-        kerns2 = kerns2.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
-
-        if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
-            x1 = x ** exp1
-        else:
-            x1 = x
-        if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
-            x2 = x ** exp2
-        else:
-            x2 = x
-        x1 = conv.conv2d(
-                x1,
-                kerns1,
-                image_shape=x_shp,
-                filter_shape=kerns1.shape,
-                border_mode=mode)
-        x2 = conv.conv2d(
-                x2,
-                kerns2,
-                image_shape=x_shp,
-                filter_shape=kerns2.shape,
-                border_mode=mode)
-        if (hasattr(exp1, '__iter__') and (exp1 != 1).any()) or exp1 != 1:
-            x1 = tensor.real(x1 ** (1.0 / exp1))
-        if (hasattr(exp2, '__iter__') and (exp2 != 1).any()) or exp2 != 1:
-            x2 = tensor.real(x2 ** (1.0 / exp2))
-        x = x1/x2
-
         if mode == 'valid':
             x_shp = (x_shp[0], n_filters,
                     x_shp[2] - filter_shape[0] + 1,

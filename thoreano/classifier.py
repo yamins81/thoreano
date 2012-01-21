@@ -14,17 +14,22 @@ from scikits.learn.linear_model.logistic import LogisticRegression
 #####sgd#####
 #############
 
-def train_asgd_classifier_normalize(trainXy, testXy, verbose=False, batchsize=10, trace_normalize=False):
+def train_asgd_classifier_normalize(trainXy,
+                                    testXy,
+                                    verbose=False,
+                                    batchsize=10,
+                                    trace_normalize=False):
 
     train_features, train_labels = trainXy
     test_features, test_labels = testXy
-    train_features, test_features, train_mean, train_std, trace = normalize([train_features, test_features],
-                                                              trace_normalize=trace_normalize)
+    train_features, test_features, train_mean, train_std, trace = normalize(
+              [train_features, test_features], trace_normalize=trace_normalize)                                            
     trainXy = (train_features, train_labels)
     testXy = (test_features, test_labels)
-    model, es, result = train_asgd_classifier(trainXy, testXy, verbose=verbose, batchsize=batchsize,
-                                       step_sizes=step_sizes)
-
+    model, es, result = train_asgd_classifier(trainXy,
+                                              testXy,
+                                              verbose=verbose,
+                                              batchsize=batchsize)
     result['train_mean'] = train_mean
     result['train_std'] = train_std
     result['trace'] = trace
@@ -54,7 +59,7 @@ def train_asgd_classifier(train_Xy, test_Xy,
     assert labelset == set(range(len(labelset))), labelset
 
     if labelset == set([0, 1]):
-        labels = [1, 1]
+        labels = [-1, 1]
         # BINARY CLASSIFICATION
         # -- change labels to -1, +1
         train_y = train_y * 2 - 1
@@ -62,7 +67,6 @@ def train_asgd_classifier(train_Xy, test_Xy,
         def model_fn():
             return asgd.naive_asgd.NaiveBinaryASGD(
                     n_features=n_features)
-
     else:
         # MULTI-CLASS CLASSIFICATION
         labels = range(len(labelset))
@@ -154,15 +158,18 @@ def train_only_scikits(train_Xy,
 
     #do normalization
     if normalization:
-        train_features, train_mean, train_std, trace = normalize([train_features],
-                                                                 trace_normalize=trace_normalize)
+        train_features, train_mean, train_std, trace = utils.normalize(
+                              [train_features], trace_normalize=trace_normalize)
     else:
         train_mean = None
         train_std = None
         trace = None
     model = train_scikits_core(train_features, train_ids, model_type, model_kwargs,
                               fit_kwargs)
-    train_data = {'train_mean':train_mean, 'train_std': train_std, 'trace': trace, 'labels':labels}
+    train_data = {'train_mean':train_mean,
+                  'train_std': train_std,
+                  'trace': trace,
+                  'labels': labels}
 
     return model, train_data
 
@@ -222,9 +229,8 @@ def evaluate(model,
 
     test_features, test_labels = test_Xy
     if normalization:
-        test_features, train_mean, train_std, trace = normalize([test_features],
-                                                                data=train_data,
-                                                trace_normalize=trace_normalize)
+        test_features, train_mean, train_std, trace = utils.normalize(
+              [test_features], data=train_data, trace_normalize=trace_normalize)
     test_prediction = model.predict(test_features)
     if regression:
         result = regression_stats(test_labels,test_prediction, prefix=prefix)
@@ -236,10 +242,18 @@ def evaluate(model,
     return model, result
 
 
-def evaluate_classifier_normalize(model, test_Xy, data, trace_normalize=False, verbose=False, batchsize=10):
+def evaluate_classifier_normalize(model,
+                                  test_Xy,
+                                  data,
+                                  trace_normalize=False,
+                                  verbose=False,
+                                  batchsize=10):
     test_X, test_y = test_Xy
-    test_X = normalize([test_X], data=data, trace_normalize=trace_normalize)
-    return evaluate_batch_classifier(model, (test_X, test_y), batchsize=batchsize, verbose=verbose)
+    test_X = utils.normalize([test_X], data=data, trace_normalize=trace_normalize)
+    return evaluate_batch_classifier(model, 
+                                     (test_X, test_y),
+                                     batchsize=batchsize,
+                                     verbose=verbose)
 
 
 def evaluate_batch_classifier(model, test_Xy, labels,
@@ -271,8 +285,6 @@ def evaluate_batch_classifier(model, test_Xy, labels,
     vscore_std = np.sqrt(vscore * (1.0 - vscore) / len(test_X))
     result = get_test_result(test_y, test_prediction, labels)
     return result
-
-
 
 
 
