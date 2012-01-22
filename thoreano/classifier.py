@@ -49,7 +49,7 @@ def train_only_asgd(train_Xy,
     train_features, train_labels = train_Xy
     if train_features.ndim != 2: raise TypeError()
     n_examples, n_features = train_features.shape
-    labelset = set(train_y)
+    labelset = set(train_labels)
     
     #do normalization
     if normalization:
@@ -65,13 +65,14 @@ def train_only_asgd(train_Xy,
         model = asgd.naive_asgd.NaiveBinaryASGD(n_features=n_features)
     else:
         # MULTI-CLASS CLASSIFICATION
+        assert len(labelset) > 2
         labels = range(len(labelset))
-        assert labelset <= set(labels)
-        model = asgd.naive_asgd.NaiveMulticlassASGD(n_features=n_features,
+        assert labelset == set(labels)
+        model = asgd.naive_asgd.NaiveOVAASGD(n_features=n_features,
                                                     n_classes=len(labelset))
                               
     
-    model.fit(train_X, train_y, margin_biases=margin_biases)
+    model.fit(train_features, train_labels, margin_biases=margin_biases)
     train_data = {'train_mean':train_mean,
                   'train_std': train_std,
                   'trace': trace,
@@ -150,6 +151,8 @@ def train_only_scikits(train_Xy,
         train_ids = train_labels
         labels = None
 
+    label_map = labels
+
     #do normalization
     if normalization:
         train_features, train_mean, train_std, trace = normalize(
@@ -163,7 +166,8 @@ def train_only_scikits(train_Xy,
     train_data = {'train_mean':train_mean,
                   'train_std': train_std,
                   'trace': trace,
-                  'labels': labels}
+                  'labels': labels,
+                  'label_map': label_map}
 
     return model, train_data
 
@@ -235,7 +239,9 @@ def evaluate(model,
         result = regression_stats(test_labels, test_prediction, prefix=prefix)
     else:
         labels = train_data['labels']
-        test_prediction = labels[test_prediction]
+        label_map = train_data.get('label_map')
+        if label_map is not None:
+            test_prediction = label_map[test_prediction]
         result = get_test_result(test_labels, test_prediction, labels, prefix=prefix)
     result.update(train_data)
     return model, result
