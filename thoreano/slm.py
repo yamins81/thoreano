@@ -297,12 +297,21 @@ class TheanoSLM(object):
     def process(self, arr_in):
         """Return something like SequentialLayeredModel would have
         """
-        rval = self.process_batch(arr_in[None,None,:,:])[0]
-        if rval.shape[2] == 1:
-            # -- drop the colour channel for single-channel images
-            return rval[:, :, 0]
+        if arr_in.ndim == 2:
+            rval4 = self.process_batch(arr_in[None,:,:,None])
+        elif arr_in.ndim == 3:
+            rval4 = self.process_batch(arr_in[None,:,:])
+        elif arr_in.ndim == 4:
+            if arr_in.shape[0] > 1:
+                raise ValueError('For multiple images, call process_batch()')
+            rval4 = self.process_batch(arr_in)
         else:
-            return rval
+            raise ValueError('wrong wrank for arr_in', arr_in.ndim)
+        if rval4.shape[3] == 1:
+            # -- drop the colour channel for single-channel images
+            return rval4[0, :, :, 0]
+        else:
+            return rval4[0]
 
 
     def init_fbcorr2_h(self, x, x_shp, **kwargs):
