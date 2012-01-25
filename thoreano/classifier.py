@@ -223,7 +223,7 @@ def evaluate(model,
             regression=False,
             normalization=True,
             trace_normalize=False,
-            prefix=None,
+            prefix='test',
             batchsize=None):
 
     test_features, test_labels = test_Xy
@@ -273,7 +273,7 @@ def get_regression_result(train_actual, test_actual, train_predicted, test_predi
 
 
 def regression_stats(actual, predicted, prefix='test'):
-    return {prefix+'_rsquared' : utils.rsquared(actual, predicted)}
+    return {prefix+'_rsquared' : rsquared(actual, predicted)}
 
 
 def get_result(train_labels, test_labels, train_prediction, test_prediction, labels):
