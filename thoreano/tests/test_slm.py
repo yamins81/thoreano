@@ -1,20 +1,21 @@
 """
-These tests try to ensure that the thoreano's implementations are consistent with pythor3.
+These tests try to ensure that the thoreano's implementations are
+consistent with pythor3.
 """
+import time
 import unittest
-from nose.tools import assert_equals
 
-import scipy as sp
 import numpy as np
+
 import hyperopt.gdist as gd
 from pythor3.model import SequentialLayeredModel
 
 try:
     from scipy.misc import lena
-except:
+except ImportError:
     from scipy import lena
 
-from thoreano.slm import TheanoSLM, InvalidDescription
+from thoreano.slm import TheanoSLM, InvalidDescription, SLMFunction
 
 def test_foo():
     import pythor3
@@ -63,28 +64,11 @@ def match_single(desc, downsample=4):
         print 'theano_out', theano_out
         print 'pythor_out', pythor_out
         #
-        #
-        #
         assert 0, ('too much error: %s' % absdiffmax)
 
 
 def match_single_color(desc):
     raise NotImplementedError()
-
-
-def match_batch(desc, batchsize=16):
-    """
-    test that pythor and theano match in process_batch
-    """
-    raise NotImplementedError()
-    if 0:
-        batch_major = np.random.randn(*((16, 3,) + arr_in.shape)).astype('float32')
-        batch_minor = batch_major.transpose(0, 2, 3, 1).copy()
-
-        theano_model = TheanoSLM(batch_major.shape, desc)
-        theano_out = theano_model.process_batch(batch_major)
-        # This doesn't run
-        pythor_out = pythor_model.process_batch(batch_minor)
 
 
 def match_batch_color(desc):
@@ -181,6 +165,57 @@ class L3Basic(unittest.TestCase):
 
     def test_all(self):
         match_single(desc=self.desc)
+
+
+def test_slm_function_on_lfw():
+    from skdata import lfw, larray
+
+    imgs, labels = lfw.Aligned().img_classification_task()
+
+    feat_fn = SLMFunction(L3Basic.desc, lfw.Aligned().img_shape)
+    feats = larray.lmap(feat_fn, imgs)
+
+    if 0:
+        # this uses a lot of memory, save re-computation of features
+        feats = larray.cache_memory(feats)
+    else:
+        feats = larray.cache_memmap(feats, name='lfw_test_foo')
+
+    # nothing has been computed yet, we just set up the pipeline
+    try:
+
+        # this computes the 0'th features
+        t0 = time.time()
+        f0a = feats[0]
+        compute_t = time.time() - t0
+
+        # this uses the cached features if cache is in use
+        t0 = time.time()
+        f0b = feats[0]
+        cache_t = time.time() - t0
+
+        assert np.all(f0a == f0b), (f0a.sum(), f0b.sum())
+        
+        print 'compute', compute_t, 'cache', cache_t
+        assert compute_t > 2 * cache_t, (compute_t, cache_t)
+
+        if 0:
+            # this would compute *all* the feature if we're caching
+            feats.cache_populate(batchsize=8)
+        
+        if 0:
+            # indexing triggers the computation of uncomputed elements
+            # in the cache, or the computation of all elements when no
+            # cache is used.
+            feats[:]
+
+    finally:
+        if hasattr(feats, 'delete_files'):
+            # if feats is a memmap, this cleans up.
+            feats.delete_files()
+
+
+
 
 
 if 0:

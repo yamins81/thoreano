@@ -4,7 +4,7 @@ import numpy as np
 import theano
 import theano.tensor as tensor
 from theano.tensor.nnet import conv
-from theano.tensor.signal import downsample
+#from theano.tensor.signal import downsample
 from pythor3.model.slm.plugins.passthrough.passthrough import (
         SequentialLayeredModelPassthrough,
         )
@@ -406,3 +406,51 @@ class TheanoSLM(object):
             r_shp = x_shp
 
         return r, r_shp
+
+
+class SLMFunction(object):
+    """
+    Make an Pythor3-style description object callable.
+
+    Satisfy the interface required by skdata.larray.lmap
+    """
+
+    def __init__(self, description, x_shp, dtype='float32', rng=888):
+        self.slm = TheanoSLM(x_shp, description, dtype, rng)
+
+    def rval_getattr(self, attr, objs):
+        if attr == 'shape':
+            return self.slm.pythor_out_shape
+        if attr == 'ndim':
+            return 3
+        if attr == 'dtype':
+            return self.slm.s_output.dtype
+        raise AttributeError(attr)
+
+    def __call__(self, arr_in):
+        if arr_in.ndim == 2:
+            rval4 = self.call_batch(arr_in[None,:,:,None])
+        elif arr_in.ndim == 3:
+            rval4 = self.call_batch(arr_in[None,:,:])
+        elif arr_in.ndim == 4:
+            if arr_in.shape[0] > 1:
+                raise ValueError('For multiple images, call process_batch()')
+            rval4 = self.call_batch(arr_in)
+        else:
+            raise ValueError('wrong wrank for arr_in', arr_in.ndim)
+
+        # N.B. process_batch puts channels in last dimension
+        assert len(rval4) == 1
+        return rval4[0]
+
+    def call_batch(self, arr_in):
+        fn = self.slm.get_theano_fn()
+        if arr_in.ndim == 4:
+            channel_major_in = arr_in.transpose(0, 3, 1, 2)
+        elif arr_in.ndim == 3:
+            channel_major_in = arr_in[:,:,:,None].transpose(0, 3, 1, 2)
+        else:
+            raise NotImplementedError()
+        return fn(channel_major_in).transpose(0, 2, 3, 1)
+
+
