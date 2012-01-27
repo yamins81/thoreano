@@ -5,7 +5,7 @@ import theano
 import theano.tensor as tensor
 from theano.tensor.nnet import conv
 
-use_pythor3_defaults = False
+use_pythor3_defaults = True
 
 if use_pythor3_defaults:
     # fbcorr
@@ -111,6 +111,7 @@ def alloc_filterbank(n_filters, height, width, channels, dtype,
     elif method_name == 'gabor2d:grid':
         # allocate a filterbank spanning a grid of frequencies, phases,
         # orientations
+        raise NotImplementedError()
 
     else:
         raise ValueError(
