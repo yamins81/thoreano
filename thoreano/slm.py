@@ -218,13 +218,13 @@ class TheanoSLM(object):
         # ../pythor3/pythor3/operation/fbcorr_/plugins/scipy_naive/scipy_naive.py
         if stride != fbcorr_DEFAULT_STRIDE:
             raise NotImplementedError('stride is not used in reference impl.')
-        kerns = alloc_pythor_filterbank(n_filters=n_filters,
+        kerns = alloc_filterbank(n_filters=n_filters,
                 height=filter_shape[0],
                 width=filter_shape[1],
                 channels=x_shp[1],
                 dtype=x.dtype,
-                gen_name=generate[0],
-                gen_kwargs=generate[1])
+                method_name=generate[0],
+                method_kwargs=generate[1])
         kerns = kerns.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
         x = conv.conv2d(
                 x,
