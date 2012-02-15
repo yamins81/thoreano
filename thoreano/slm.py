@@ -77,6 +77,7 @@ class TheanoSLM(object):
     def __init__(self, in_shape, description,
             dtype='float32', rng=888):
 
+        self.kerns = []
         # -- transpose shape to theano-convention (channel major)
 
         if len(in_shape) == 2:
@@ -152,6 +153,7 @@ class TheanoSLM(object):
                                                    filter_shape=filter_shape,
                                                    generate=generate))
         kerns = kerns.transpose(0, 3, 1, 2).copy()[:,:,::-1,::-1]
+        self.kerns.append(kerns)
         x = conv.conv2d(
                 x,
                 kerns,
