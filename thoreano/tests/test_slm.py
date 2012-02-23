@@ -7,8 +7,10 @@ import unittest
 
 import numpy as np
 
-import hyperopt.gdist as gd
 from pythor3.model import SequentialLayeredModel
+
+# required for fuzz-testing
+import pyll
 
 try:
     from scipy.misc import lena
@@ -215,8 +217,41 @@ def test_slm_function_on_lfw():
             feats.delete_files()
 
 
+def fuzz_verify_runs(desc, downsample=4):
+    arr_in = (1.0 * lena())[::downsample, ::downsample]
+    theano_model = TheanoSLM(arr_in.shape, desc)
+    theano_out = theano_model.process(arr_in)
 
 
+class ForInts(object):
+    def test_1(self):
+        self.forint(1)
+
+    def test_2(self):
+        self.forint(2)
+
+    def test_3(self):
+        self.forint(3)
+
+    def test_many(self):
+        for seed in range(100, 150):
+            self.forint(seed)
+
+class TestLNormFuzz(unittest.TestCase, ForInts):
+    def forint(self, seed):
+        size = pyll.scope.int(
+                pyll.scope.quniform(1.01, 10, 1))
+        lnorm = ('lnorm', {'kwargs':
+                {'inker_shape' : (size, size),
+                 'outker_shape' : (size, size),
+                 'remove_mean' : pyll.scope.one_of(0, 1),
+                 'stretch' : pyll.scope.uniform(0, 10),
+                 'threshold' : pyll.scope.uniform(0, 10),
+             }})
+        config = pyll.stochastic.sample(
+                    [[lnorm]],
+                np.random.RandomState(seed))
+        fuzz_verify_runs(config)
 
 if 0:
     import cvpr_params
