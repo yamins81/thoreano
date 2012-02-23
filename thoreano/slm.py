@@ -315,16 +315,22 @@ class TheanoSLM(object):
                     channels=True)
             xs = inker_shape[0] // 2
             ys = inker_shape[1] // 2
+            # --local contrast normalization in regions that are not symmetric
+            #   about the pixel being normalized feels weird, but we're
+            #   allowing it here.
+            xs_inc = (inker_shape[0] + 1) % 2
+            ys_inc = (inker_shape[1] + 1) % 2
             if div_method == 'euclidean':
                 if remove_mean:
                     arr_sum, _shp = self.boxconv(x, x_shp, inker_shape,
                             channels=True)
-                    arr_num = x[:, :, xs:-xs, ys:-ys] - arr_sum / size
+                    arr_num = (x[:, :, xs-xs_inc:-xs, ys-ys_inc:-ys]
+                            - arr_sum / size)
                     arr_div = EPSILON + tensor.sqrt(
                             tensor.maximum(0,
                                 ssq - (arr_sum ** 2) / size))
                 else:
-                    arr_num = x[:, :, xs:-xs, ys:-ys]
+                    arr_num = x[:, :, xs-xs_inc:-xs, ys-ys_inc:-ys]
                     arr_div = EPSILON + tensor.sqrt(ssq)
             else:
                 raise NotImplementedError('div_method', div_method)
