@@ -200,17 +200,8 @@ class TheanoSLM(object):
         self.pythor_out_shape = x_shp[2], x_shp[3], x_shp[1]
         self.s_output = x
 
-    def init_fbcorr_h(self, x, x_shp, **kwargs):
-        min_out = kwargs.get('min_out', fbcorr_DEFAULT_MIN_OUT)
-        max_out = kwargs.get('max_out', fbcorr_DEFAULT_MAX_OUT)
-        kwargs['max_out'] = get_into_shape(max_out)
-        kwargs['min_out'] = get_into_shape(min_out)
-        return self.init_fbcorr(x, x_shp, **kwargs)
-
     def init_fbcorr(self, x, x_shp, n_filters,
             filter_shape,
-            min_out=fbcorr_DEFAULT_MIN_OUT,
-            max_out=fbcorr_DEFAULT_MAX_OUT,
             stride=fbcorr_DEFAULT_STRIDE,
             mode=fbcorr_DEFAULT_MODE,
             generate=None):
@@ -242,7 +233,19 @@ class TheanoSLM(object):
                     x_shp[3] + filter_shape[1] - 1)
         else:
             raise NotImplementedError('fbcorr mode', mode)
+        
+        return x, x_shp
 
+    def init_activ_h(self, x, x_shp, **kwargs):
+        min_out = kwargs.get('min_out', fbcorr_.DEFAULT_MIN_OUT)
+        max_out = kwargs.get('max_out', fbcorr_.DEFAULT_MAX_OUT)
+        kwargs['max_out'] = get_into_shape(max_out)
+        kwargs['min_out'] = get_into_shape(min_out)
+        return self.init_activ(x, x_shp, **kwargs)
+
+    def init_activ(self, x, x_shp,
+                   min_out=fbcorr_.DEFAULT_MIN_OUT,
+                   max_out=fbcorr_.DEFAULT_MAX_OUT):
         if min_out is None and max_out is None:
             return x, x_shp
         elif min_out is None:
@@ -251,6 +254,7 @@ class TheanoSLM(object):
             return tensor.maximum(x, min_out), x_shp
         else:
             return tensor.clip(x, min_out, max_out), x_shp
+
 
     def boxconv(self, x, x_shp, kershp, channels=False):
         """
@@ -363,19 +367,27 @@ class TheanoSLM(object):
             o1 = order == 1
             o2 = (order == int(order))
 
-        if o1:
-            r, r_shp = self.boxconv(x, x_shp, ker_shape)
-        elif o2:
-            r, r_shp = self.boxconv(x ** order, x_shp, ker_shape)
-            r = tensor.maximum(r, 0) ** (1.0 / order)
+        if ker_shape != (1,1):
+            if o1:
+                r, r_shp = self.boxconv(x, x_shp, ker_shape)
+            elif o2:
+                r, r_shp = self.boxconv(x ** order, x_shp, ker_shape)
+                r = tensor.maximum(r, 0) ** (1.0 / order)
+            else:
+                r, r_shp = self.boxconv(abs(x) ** order, x_shp, ker_shape)
+                r = tensor.maximum(r, 0) ** (1.0 / order)
         else:
-            r, r_shp = self.boxconv(abs(x) ** order, x_shp, ker_shape)
-            r = tensor.maximum(r, 0) ** (1.0 / order)
+            r, r_shp = x, x_shp
 
+        return r, r_shp
+
+    def init_rescale(self, x, x_shp, stride=1):
         if stride > 1:
-            r = r[:, :, ::stride, ::stride]
+            r = x[:, :, ::stride, ::stride]
             # intdiv is tricky... so just use numpy
-            r_shp = np.empty(r_shp)[:, :, ::stride, ::stride].shape
+            r_shp = np.empty(x_shp)[:, :, ::stride, ::stride].shape
+        else:
+            r, r_shp = x, x_shp
         return r, r_shp
 
     def get_theano_fn(self):
@@ -415,20 +427,6 @@ class TheanoSLM(object):
         else:
             return rval4[0]
 
-
-    def init_rescale(self, x, x_shp,
-            stride=1,
-            mode='valid'):
-
-        if stride > 1:
-            r = x[:, :, ::stride, ::stride]
-            # intdiv is tricky... so just use numpy
-            r_shp = np.empty(x_shp)[:, :, ::stride, ::stride].shape
-        else:
-            r = x
-            r_shp = x_shp
-
-        return r, r_shp
 
 
 class SLMFunction(object):
