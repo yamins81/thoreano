@@ -62,9 +62,10 @@ def dict_add(a, b):
 
 
 def get_pythor_safe_description(description):
-    description = copy.deepcopy(description)
+    description = list(copy.deepcopy(description))
     for layer_idx, layer_desc in enumerate(description):
         for (op_idx, (op_name, op_params)) in enumerate(layer_desc):
+            layer_desc = list(layer_desc)
             if op_name.endswith('_h'):
                 newname = op_name[:-2]
                 layer_desc[op_idx] = (newname,op_params)
@@ -82,7 +83,9 @@ def get_pythor_safe_description(description):
                 layer_desc[op_idx] = (newname,op_params)
             elif op_name == 'activ':
                 layer_desc[op_idx] = None
+            layer_desc = tuple(layer_desc)
         description[layer_idx] = [_x for _x in layer_desc if _x is not None]
+    description = tuple(description)
     return description
 
 
@@ -358,7 +361,8 @@ class TheanoSLM(object):
         if (hasattr(stretch, '__iter__') and (stretch != 1).any()) or stretch != 1:
             arr_num = arr_num * stretch
             arr_div = arr_div * stretch
-        arr_div = tensor.switch(arr_div < (threshold + EPSILON), 1.0, arr_div)
+        if threshold is not None:
+            arr_div = tensor.switch(arr_div < (threshold + EPSILON), 1.0, arr_div)
 
         r = arr_num / arr_div
         r_shp = x_shp[0], x_shp[1], ssqshp[2], ssqshp[3]
