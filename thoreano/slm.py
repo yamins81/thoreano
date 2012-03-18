@@ -64,10 +64,25 @@ def dict_add(a, b):
 def get_pythor_safe_description(description):
     description = copy.deepcopy(description)
     for layer_idx, layer_desc in enumerate(description):
-        for (op_idx,(op_name, op_params)) in enumerate(layer_desc):
+        for (op_idx, (op_name, op_params)) in enumerate(layer_desc):
             if op_name.endswith('_h'):
                 newname = op_name[:-2]
                 layer_desc[op_idx] = (newname,op_params)
+            if op_name == 'fbcorr2':
+                newname = 'fbcorr'
+                op_params['initialize'].pop('exp1')
+                op_params['initialize'].pop('exp2')
+                op_params['initialize']['generate'] = op_params['initialize'].pop('generate1')
+                op_params['initialize'].pop('generate2')
+                layer_desc[op_idx] = (newname,op_params)
+            elif op_name == 'rescale':
+                newname = 'lpool'
+                op_params['kwargs']['ker_shape'] = (1,1)
+                op_params['kwargs']['order'] = 1
+                layer_desc[op_idx] = (newname,op_params)
+            elif op_name == 'activ':
+                layer_desc[op_idx] = None
+        description[layer_idx] = [_x for _x in layer_desc if _x is not None]
     return description
 
 
