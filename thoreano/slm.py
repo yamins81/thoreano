@@ -142,8 +142,24 @@ def alloc_filterbank(n_filters, height, width, channels, dtype,
     elif method_name == 'gabor2d:grid':
         # allocate a filterbank spanning a grid of frequencies, phases,
         # orientations
-        raise NotImplementedError()
-
+        raise NotImplementedError('only 2d gabor implemented')
+    elif method_name == 'gabor:random':
+        if channels is not None:
+            raise NotImplementedError()
+        rseed = method_kwargs.get('rseed', None)
+        rng = np.random.RandomState(rseed)
+        xc = width/2
+        yc = height/2
+        fb_data = np.empty(filter_shape)
+        min_wl = method_kwargs['min_wl']
+        max_wl = method_kwargs['max_wl']
+        for f_ind in xrange(n_filters):
+            orient = 2 * np.pi * rng.uniform()
+            freq = 1./rng.randint(min_wl, high=max_wl)
+            phase = 2 * np.pi * rng.uniform()
+            fb_data[f_ind, :, :] = gabor2d(xc, yc, xc, yc, 
+                                           freq, orient, phase,
+                                           (fw, fh))
     else:
         raise ValueError(
             "method to generate filterbank '%s' not understood"
