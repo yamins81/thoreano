@@ -13,6 +13,8 @@ import theano
 import theano.tensor as tensor
 from theano.tensor.nnet import conv
 
+from thoreano.utils import gabor2d
+
 use_pythor3_defaults = True
 
 if use_pythor3_defaults:
@@ -139,13 +141,13 @@ def alloc_filterbank(n_filters, height, width, channels, dtype,
         rseed = method_kwargs.get('rseed', None)
         np.random.seed(rseed)
         fb_data = np.random.uniform(size=filter_shape)
-    elif method_name == 'gabor2d:grid':
+    elif method_name == 'gabor:grid':
         # allocate a filterbank spanning a grid of frequencies, phases,
         # orientations
-        raise NotImplementedError('only 2d gabor implemented')
+        raise NotImplementedError()
     elif method_name == 'gabor:random':
         if channels is not None:
-            raise NotImplementedError()
+            raise NotImplementedError('only 2d gabor implemented')
         rseed = method_kwargs.get('rseed', None)
         rng = np.random.RandomState(rseed)
         xc = width/2
