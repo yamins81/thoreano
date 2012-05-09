@@ -169,13 +169,15 @@ def alloc_filterbank(n_filters, height, width, channels, dtype,
 
     # normalize each filter in the bank if needed
     if normalize:
+        fmean = method_kwargs.get('fmean', 0)
+        fnorm = method_kwargs.get('fnorm', 1)
         # TODO: vectorize these computations, do all at once.
         for fidx, filt in enumerate(fb_data):
             # normalization here means zero-mean, unit-L2norm
-            filt -= filt.mean()
+            filt -= filt.mean() + fmean
             filt_norm = np.sqrt((filt * filt).sum())
             assert filt_norm != 0
-            filt /= filt_norm
+            filt *= (fnorm / filt_norm)
             fb_data[fidx] = filt
 
     return fb_data.astype(dtype)
