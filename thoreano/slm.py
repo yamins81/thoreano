@@ -141,27 +141,33 @@ def alloc_filterbank(n_filters, height, width, channels, dtype,
         rseed = method_kwargs.get('rseed', None)
         np.random.seed(rseed)
         fb_data = np.random.uniform(size=filter_shape)
-    elif method_name == 'gabor:grid':
+    elif method_name == 'grid:gabor':
         # allocate a filterbank spanning a grid of frequencies, phases,
         # orientations
         raise NotImplementedError()
-    elif method_name == 'gabor:random':
-        if channels is not None:
-            raise NotImplementedError('only 2d gabor implemented')
+    elif method_name == 'random:gabor':
+        if channels is None:
+            depth = 1
+            fb_shape = filter_shape + [1]
+        else:
+            depth = channels
+            fb_shape = filter_shape
         rseed = method_kwargs.get('rseed', None)
         rng = np.random.RandomState(rseed)
         xc = width/2
         yc = height/2
-        fb_data = np.empty(filter_shape)
+        fb_data = np.empty(fb_shape)
         min_wl = method_kwargs['min_wl']
         max_wl = method_kwargs['max_wl']
-        for f_ind in xrange(n_filters):
+        for f_ind, d_ind in itertools.product(xrange(n_filters), xrange(depth)):
             orient = 2 * np.pi * rng.uniform()
             freq = 1./rng.randint(min_wl, high=max_wl)
             phase = 2 * np.pi * rng.uniform()
-            fb_data[f_ind, :, :] = gabor2d(xc, yc, xc, yc, 
+            fb_data[f_ind, :, :, d_ind] = gabor2d(xc, yc, xc, yc, 
                                            freq, orient, phase,
-                                           (fw, fh))
+                                           (width, height))
+        if channels is None:
+            fb_data = fb_data[:, :, :, 0]
     else:
         raise ValueError(
             "method to generate filterbank '%s' not understood"
