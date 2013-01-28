@@ -291,7 +291,7 @@ class TheanoSLM(object):
         elif mode == 'full':
             x_shp = (x_shp[0], n_filters,
                     x_shp[2] + filter_shape[0] - 1,
-                    x_shp[3] + filter_shape[1] - 1)
+                    x_shp[3] + filter_shape[1] - 1)               
         else:
             raise NotImplementedError('fbcorr mode', mode)
         
@@ -380,6 +380,7 @@ class TheanoSLM(object):
                     channels=True)
             xs = inker_shape[0] // 2
             ys = inker_shape[1] // 2
+
             # --local contrast normalization in regions that are not symmetric
             #   about the pixel being normalized feels weird, but we're
             #   allowing it here.
